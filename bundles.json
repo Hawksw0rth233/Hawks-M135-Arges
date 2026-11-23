@@ -1,0 +1,18 @@
+{
+  "manifest": [
+    {
+      "key": "hawks/weapon_m135_arges.bundle",
+      "dependencyKeys": [
+        "shaders",
+        "cubemaps"
+      ]
+    },
+    {
+      "key": "hawks/mag_m135_arges.bundle",
+      "dependencyKeys": [
+        "shaders",
+        "cubemaps"
+      ]
+    }
+  ]
+}
