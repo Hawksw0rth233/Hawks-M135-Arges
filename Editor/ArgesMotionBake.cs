@@ -252,6 +252,7 @@ public static class ArgesMotionBake {
     Debug.Log("ARGES INVENTORY "+state.name+" length="+duration+" stop="+stop+" horiz="+best);
    }
    AssetDatabase.SaveAssets();
+   ArgesCarryEffects.BindPatrol(pathOut);
   }finally{Object.DestroyImmediate(rig);Object.DestroyImmediate(src);}
  }
 }

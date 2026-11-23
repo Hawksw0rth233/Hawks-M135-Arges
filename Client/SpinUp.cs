@@ -6,7 +6,7 @@ using HarmonyLib;
 using UnityEngine;
 
 namespace Hawks.Arges {
-[BepInPlugin("team.aminus.arges.client","M135 Arges spin-up","1.0.0")]
+[BepInPlugin("team.aminus.arges.client","M135 Arges spin-up","1.0.4")]
 public sealed partial class SpinUp : BaseUnityPlugin {
  const string WeaponId="686a13500000000000000001";
  // The source start clip lasts 29 frames at 30 fps.
@@ -37,11 +37,11 @@ public sealed partial class SpinUp : BaseUnityPlugin {
  }
  static void HideIconTool(GameObject model){HidePreviewTool(model);}
 
- static void FitBareIcon(GameObject model, Camera camera,float cameraAspect){
+ static void FitArgesIcon(GameObject model, Camera camera,float cameraAspect){
   if(!model || !camera || !camera.orthographic)return;
   var nodes=model.GetComponentsInChildren<Transform>();
   var body=nodes.FirstOrDefault(t=>t.name=="M135");
-  if(!body || nodes.Any(t=>t.name.StartsWith("mag_m135_arges") || t.name=="Feed box decals"))return;
+  if(!body)return;
   // Align the visible mesh, including the live rig rotation, before measuring it.
   Quaternion target=camera.transform.rotation*Quaternion.Euler(6,-16,0);
   model.transform.rotation=target*Quaternion.Inverse(body.rotation)*model.transform.rotation;
@@ -160,6 +160,7 @@ public sealed partial class SpinUp : BaseUnityPlugin {
   visibleTool.gameObject.SetActive(drawScales[a]>.5f);
  }
  void LateUpdate(){
+  UpdateGripPort();
   UpdateDrawTool();
   UpdateLaser();
   foreach(var pair in looks.ToArray()){
@@ -198,10 +199,8 @@ public sealed partial class SpinUp : BaseUnityPlugin {
  ReadDrawTrack();instance=this;patch=new Harmony(Info.Metadata.GUID);
  patch.Patch(AccessTools.Method(typeof(EFT.UI.ItemSpecificationPanel),"RecreateAttributeBars"),transpiler:new HarmonyMethod(typeof(SpinUp),nameof(FeedStats)));
  patch.Patch(AccessTools.Method(typeof(EFT.InventoryLogic.StackSlot),"Add",new[]{typeof(EFT.InventoryLogic.Item),typeof(bool)}),prefix:new HarmonyMethod(typeof(SpinUp),nameof(PackRounds)));
- patch.Patch(AccessTools.Method(typeof(ItemIconCreator),"PoseModelByPivot"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(HideIconTool)),postfix:new HarmonyMethod(typeof(SpinUp),nameof(FitBareIcon)));
+ patch.Patch(AccessTools.Method(typeof(ItemIconCreator),"PoseModelByPivot"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(HideIconTool)),postfix:new HarmonyMethod(typeof(SpinUp),nameof(FitArgesIcon)));
  RegisterLaserCommands();
- patch.Patch(AccessTools.Method(typeof(Player.FirearmController),"AdjustShotVectors"),
-  postfix:new HarmonyMethod(typeof(SpinUp),nameof(AlignVisualMuzzle)));
  patch.Patch(AccessTools.Method(typeof(ItemIconCreator),"GetItemIcon"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(IconRequest)));
  patch.Patch(AccessTools.Method(typeof(EFT.UI.WeaponModding.WeaponPreview),"PositionGameObject"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(PositionPreview)));
  patch.Patch(AccessTools.Method(typeof(RendererExtensions),"PlaceInClosestPosition"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(CameraFit)));

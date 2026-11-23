@@ -1,6 +1,6 @@
 # M135 Arges for SPT
 
-Version 1.0.0 targets SPT 4.1.6. Extract the release ZIP into the folder containing EscapeFromTarkov.exe.
+Version 1.0.4 targets SPT 4.1.6. Extract the release ZIP into the folder containing EscapeFromTarkov.exe.
 
 ## Build the plugins
 

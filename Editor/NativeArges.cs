@@ -21,6 +21,19 @@ public static class NativeArges {
  static GameObject Load(string n)=>AssetDatabase.LoadAssetAtPath<GameObject>(Source+n+".prefab");
  static Transform Bone(GameObject o,string name)=>o.GetComponentsInChildren<Transform>(true).First(t=>t.name==name);
  public static Vector3[] toolPositions=new Vector3[57];public static Quaternion[] toolRotations=new Quaternion[57];
+ public static GameObject FindMuzzleFx(){
+  var path=AssetDatabase.GUIDToAssetPath("3482ebbd40fb7e042b767e6a1252e50c");
+  var fx=AssetDatabase.LoadAssetAtPath<GameObject>(path);
+  if(!fx || !fx.GetComponent<MuzzleJet>() || !fx.GetComponent<MuzzleFume>())throw new Exception("Missing native muzzle effects");
+  return fx;
+ }
+ public static void AttachMuzzleFx(Transform port){
+  if(port.Find("ArgesMuzzleFX"))return;
+  var fx=Object.Instantiate(FindMuzzleFx(),port,false);
+  fx.name="ArgesMuzzleFX";
+  fx.transform.localPosition=Vector3.zero;
+  fx.transform.localRotation=Quaternion.identity;
+ }
  static Vector3 feedLocal;static Quaternion feedRotation;
  static GameObject Rig(GameObject source,string name){
  var o=Object.Instantiate(source);o.name=name;
@@ -76,6 +89,7 @@ public static class NativeArges {
 
  var end=vertices.Min(v=>v.y);var tip=vertices.Where(v=>v.y<end+.005f).ToArray();var mid=tip.Aggregate(Vector3.zero,(v,x)=>v+x)/tip.Length;
  var fireport=weapon.GetComponentsInChildren<Transform>(true).FirstOrDefault(t=>t.name=="fireport");if(!fireport){fireport=new GameObject("fireport").transform;fireport.SetParent(weapon,false);}fireport.localPosition=mid;
+ AttachMuzzleFx(fireport);
  var rotor=new GameObject("ArgesRotor").transform;rotor.SetParent(weapon,false);rotor.localPosition=mid;var fireRotor=new GameObject("ArgesFireRotor").transform;fireRotor.SetParent(rotor,false);mesh.transform.SetParent(fireRotor,true);
  var motor=rotor.gameObject.AddComponent<AudioSource>();motor.playOnAwake=false;motor.loop=true;motor.spatialBlend=1;motor.clip=AssetDatabase.LoadAssetAtPath<AudioClip>(Source+"Audio/698153320.wem.wav");
  foreach(var t in o.GetComponentsInChildren<Transform>(true).Where(x=>x.name=="fireport"||x.name.StartsWith("smokeport")))t.position=weapon.TransformPoint(mid);
@@ -92,7 +106,7 @@ public static class NativeArges {
  var bounds=new Bounds(rawBody.TransformPoint(verts[ids[0]]),Vector3.zero);foreach(var id in ids)bounds.Encapsulate(rawBody.TransformPoint(verts[id]));
  slot.SetParent(model.transform,false);slot.localPosition=bounds.center;slot.localRotation=Quaternion.identity;slot.localScale=Vector3.one;
  feedLocal=-bounds.center;feedRotation=Quaternion.identity;
- return Save(o,name);}
+ ArgesCarryEffects.BindBarrel(o);return Save(o,name);}
  static SoundBank Bank(SoundBank template,string name,string[] ids){
  var b=Object.Instantiate(template);var clips=ids.Select(id=>AssetDatabase.LoadAssetAtPath<AudioClip>(Source+"Audio/"+id+(id=="arges-shot-tail-short"?".wav":".wem.wav"))).ToArray();
  if(clips.Any(x=>!x))throw new Exception("Missing audio "+name);
@@ -101,6 +115,7 @@ public static class NativeArges {
  public static void Build(){
  string path=AssetDatabase.FindAssets("weapon_zis_ppsh41_762x25_container t:Prefab").Select(AssetDatabase.GUIDToAssetPath).First(x=>x.EndsWith("_container.prefab"));
  var o=Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(path));var wp=o.GetComponent<WeaponPrefab>();
+ o.GetComponent<MuzzleManager>().MeshParentName="ArgesMuzzleFX";wp.DefaultMuzzlePrefab=FindMuzzleFx();
  wp._weaponObject=Rig(AssetDatabase.LoadAssetAtPath<GameObject>(path.Replace("_container.prefab",".generated.prefab")),"arges_full");wp._weaponObjectSimple=Rig(AssetDatabase.LoadAssetAtPath<GameObject>(path.Replace("_container.prefab","_simple.generated.prefab")),"arges_simple");
  // EFT rotates the cartridge by +90 degrees around local X before applying its local impulse.
  var extraction=o.GetComponent<ShellExtractionData>();var shot=extraction.ShotSettings;

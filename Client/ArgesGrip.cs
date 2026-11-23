@@ -6,7 +6,6 @@ using UnityEngine;
 namespace Hawks.Arges {
 public sealed partial class SpinUp {
  Camera poseCamera;
- Matrix4x4 undoRenderedGrip;
  static readonly Quaternion GripRotation=Quaternion.Euler(-11f,0f,12f);
  static readonly Vector3 GripTranslation=new Vector3(0,.10f,.15f);
  readonly List<Transform> gripRoots=new List<Transform>(5);
@@ -33,11 +32,11 @@ public sealed partial class SpinUp {
   var bones=player.PlayerBones;
   if(!weapon || !bones.RightPalm)return;
   var basis=camera.transform;
+  if(gripPort)gripPort.localPosition=portRest;
   var pose=GripPose(basis,bones.RightPalm.position);
   AddGripRoot(weapon,basis);
   if(bones.Upperarms!=null)foreach(var arm in bones.Upperarms)AddGripRoot(arm,basis);
   AddGripRoot(bones.LeftPalm,basis);AddGripRoot(bones.RightPalm,basis);
-  undoRenderedGrip=pose.inverse;
   poseCamera=camera;
   foreach(var root in gripRoots){
    originalGrip.Add(new Pose(root.localPosition,root.localRotation));
@@ -51,7 +50,30 @@ public sealed partial class SpinUp {
   }
   gripRoots.Clear();originalGrip.Clear();poseCamera=null;
  }
- void AfterGrip(Camera camera){if(poseCamera==camera)RestoreGrip();}
+ // Outside rendering, EFT reads the native fireport from the unposed rig.
+ // Follow the visible muzzle centre without moving the rig or changing its firing axis.
+ Transform gripPort;
+ Vector3 portRest;
+ void ReleaseGripPort(){
+  if(gripPort)gripPort.localPosition=portRest;
+  gripPort=null;
+ }
+ void UpdateGripPort(){
+  if(poseCamera)return;
+  var player=Singleton<GameWorld>.Instantiated?Singleton<GameWorld>.Instance.MainPlayer:null;
+  var gun=player?player.HandsController as Player.FirearmController:null;
+  var camera=Camera.main;
+  var port=gun?.Item?.TemplateId==WeaponId && player.PointOfView==EPointOfView.FirstPerson && camera && player.PlayerBones.RightPalm
+   ?gun.CurrentFireport?.Original:null;
+  if(port!=gripPort){
+   ReleaseGripPort();
+   if(port){gripPort=port;portRest=port.localPosition;}
+  }
+  if(!gripPort || !gripPort.parent)return;
+  var original=gripPort.parent.TransformPoint(portRest);
+  gripPort.position=GripPose(camera.transform,player.PlayerBones.RightPalm.position).MultiplyPoint3x4(original);
+ }
+ void AfterGrip(Camera camera){if(poseCamera==camera){RestoreGrip();UpdateGripPort();}}
  void OnEnable(){Camera.onPreCull+=ApplyGrip;Camera.onPostRender+=AfterGrip;}
- void OnDisable(){Camera.onPreCull-=ApplyGrip;Camera.onPostRender-=AfterGrip;RestoreGrip();}
+ void OnDisable(){Camera.onPreCull-=ApplyGrip;Camera.onPostRender-=AfterGrip;RestoreGrip();ReleaseGripPort();}
 }}
