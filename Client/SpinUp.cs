@@ -6,7 +6,7 @@ using HarmonyLib;
 using UnityEngine;
 
 namespace Hawks.Arges {
-[BepInPlugin("team.aminus.arges.client","M135 Arges spin-up","1.0.4")]
+[BepInPlugin("team.aminus.arges.client","M135 Arges spin-up","1.0.5")]
 public sealed partial class SpinUp : BaseUnityPlugin {
  const string WeaponId="686a13500000000000000001";
  // The source start clip lasts 29 frames at 30 fps.
@@ -200,6 +200,7 @@ public sealed partial class SpinUp : BaseUnityPlugin {
  patch.Patch(AccessTools.Method(typeof(EFT.UI.ItemSpecificationPanel),"RecreateAttributeBars"),transpiler:new HarmonyMethod(typeof(SpinUp),nameof(FeedStats)));
  patch.Patch(AccessTools.Method(typeof(EFT.InventoryLogic.StackSlot),"Add",new[]{typeof(EFT.InventoryLogic.Item),typeof(bool)}),prefix:new HarmonyMethod(typeof(SpinUp),nameof(PackRounds)));
  patch.Patch(AccessTools.Method(typeof(ItemIconCreator),"PoseModelByPivot"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(HideIconTool)),postfix:new HarmonyMethod(typeof(SpinUp),nameof(FitArgesIcon)));
+ RegisterFireRate();
  RegisterLaserCommands();
  patch.Patch(AccessTools.Method(typeof(ItemIconCreator),"GetItemIcon"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(IconRequest)));
  patch.Patch(AccessTools.Method(typeof(EFT.UI.WeaponModding.WeaponPreview),"PositionGameObject"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(PositionPreview)));

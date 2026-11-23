@@ -94,6 +94,7 @@ public sealed class ArgesInventoryDimensions(TemplateTable templates) : IOnLoad
     public Task OnLoadAsync(CancellationToken cancellationToken)
     {
         var weapon = templates.Items[ArgesMod.WeaponId].Properties!;
+        weapon.IsMountable = false;
         weapon.Weight = 19.35;
         weapon.HipInnaccuracyGain = 0;
         weapon.Ergonomics = 0;
