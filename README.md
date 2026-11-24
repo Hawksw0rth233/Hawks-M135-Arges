@@ -1,6 +1,6 @@
 # M135 Arges for SPT
 
-Version 1.1.0 targets SPT 4.1.6. Extract the release ZIP into the folder containing EscapeFromTarkov.exe.
+Release 1.1.1 (client 1.0.10, server 1.1.0) targets SPT 4.1.6. Extract the release ZIP into the folder containing EscapeFromTarkov.exe.
 
 In the F12 configuration manager, open **M135 Arges spin-up → Weapon → Fire rate (RPM)**. The default is 1337 RPM. Changes apply on the next burst.
 

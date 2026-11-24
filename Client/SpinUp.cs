@@ -1,3 +1,5 @@
+using EFT.InventoryLogic;
+using EFT.Communications;
 using System.Collections.Generic;
 using System.Linq;
 using BepInEx;
@@ -6,7 +8,7 @@ using HarmonyLib;
 using UnityEngine;
 
 namespace Hawks.Arges {
-[BepInPlugin("team.aminus.arges.client","M135 Arges spin-up","1.0.9")]
+[BepInPlugin("team.aminus.arges.client","M135 Arges spin-up","1.0.10")]
 public sealed partial class SpinUp : BaseUnityPlugin {
  const string WeaponId="686a13500000000000000001";
  // The source start clip lasts 29 frames at 30 fps.
@@ -223,8 +225,8 @@ public sealed partial class SpinUp : BaseUnityPlugin {
  patch.Patch(AccessTools.Method(typeof(Player.FirearmController),"SetTriggerPressed",new[]{typeof(bool)}),
  prefix:new HarmonyMethod(typeof(SpinUp),nameof(Filter)));
  patch.Patch(AccessTools.Method(typeof(EFT.UI.ItemUiContext),"ReloadWeapon"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(AllowMenuReload)));
- foreach(var action in new[]{"LoadWeapon","UnloadWeapon"})
-  patch.Patch(AccessTools.Method(typeof(EFT.UI.ItemUiContext),action),prefix:new HarmonyMethod(typeof(SpinUp),nameof(AllowMenuLoadUnload)));
+ patch.Patch(AccessTools.Method(typeof(EFT.UI.ItemUiContext),"UnloadWeapon"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(UnloadFromBag)));
+ patch.Patch(AccessTools.Method(typeof(EFT.UI.ItemUiContext),"LoadWeapon"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(AllowMenuLoadUnload)));
  patch.Patch(AccessTools.Method(typeof(EFT.InventoryLogic.Slot),"Add",new[]{typeof(EFT.InventoryLogic.Item),typeof(bool),typeof(bool)}),prefix:new HarmonyMethod(typeof(SpinUp),nameof(InsertFeed)));
  patch.Patch(AccessTools.Method(typeof(EFT.InventoryLogic.Slot),"RemoveItem",new[]{typeof(bool)}),prefix:new HarmonyMethod(typeof(SpinUp),nameof(RemoveFeed)));
  patch.Patch(AccessTools.Method(typeof(EFT.InventoryLogic.ItemController),"LoadMagazine",new[]{typeof(EFT.InventoryLogic.Ammo),typeof(EFT.InventoryLogic.Magazine),typeof(int),typeof(bool)}),prefix:new HarmonyMethod(typeof(SpinUp),nameof(LoadFeed)));
@@ -260,6 +262,34 @@ public sealed partial class SpinUp : BaseUnityPlugin {
   if (!MountedWeapon(__0)) return true;
   __result = System.Threading.Tasks.Task.CompletedTask;
   return false;
+ }
+ static bool UnloadFromBag(EFT.InventoryLogic.Weapon __0, EFT.InventoryLogic.ItemController ____itemController,
+  EFT.InventoryLogic.InventoryEquipment ____equipment, ref System.Threading.Tasks.Task __result){
+  if(__0?.TemplateId!=WeaponId)return true;
+  if(MountedWeapon(__0)){__result=System.Threading.Tasks.Task.CompletedTask;return false;}
+  if(!InGameStatus.InRaid || !(__0.CurrentAddress is EFT.InventoryLogic.GridItemAddress address) ||
+     ____equipment==null || !____equipment.Contains(__0))return true;
+  __result=UnloadStoredFeed(__0,address,____equipment,____itemController);
+  return false;
+ }
+
+ static async System.Threading.Tasks.Task UnloadStoredFeed(EFT.InventoryLogic.Weapon weapon,
+  EFT.InventoryLogic.GridItemAddress address,EFT.InventoryLogic.InventoryEquipment equipment,EFT.InventoryLogic.ItemController controller){
+  var feed=weapon.GetCurrentMagazine();
+  if(feed==null || feed.PinLockState==EFT.InventoryLogic.EItemPinLockState.Locked)return;
+  var held=Comfort.Common.Singleton<GameWorld>.Instance?.MainPlayer?.HandsController as Player.FirearmController;
+  if(held?.Item==weapon)return;
+  var grids=new[]{address.Grid}.Concat(equipment.GetPrioritizedGridsForUnloadedObject()).Distinct();
+  foreach(var grid in grids){
+   var destination=grid.FindLocationForItem(feed);
+   if(destination==null)continue;
+   var move=EFT.InventoryLogic.ItemManipulator.Move(feed,destination,controller,simulate:true);
+   if(!move.Succeeded)continue;
+   var result=await EFT.UI.ItemUiContext.RunWithSound(controller,feed,move);
+   if(result.Failed)NotificationManager.DisplayWarningNotification(result.Error.ToString());
+   return;
+  }
+  NotificationManager.DisplayWarningNotification("Can't find a place for item".Localized());
  }
  static bool MountedFeed(EFT.InventoryLogic.Item item){
   return item?.TemplateId=="686a13500000000000000002" && MountedWeapon(item.Parent?.Container?.ParentItem);
