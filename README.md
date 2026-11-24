@@ -1,6 +1,6 @@
 # M135 Arges for SPT
 
-Version 1.0.5 targets SPT 4.1.6. Extract the release ZIP into the folder containing EscapeFromTarkov.exe.
+Version 1.1.0 targets SPT 4.1.6. Extract the release ZIP into the folder containing EscapeFromTarkov.exe.
 
 In the F12 configuration manager, open **M135 Arges spin-up → Weapon → Fire rate (RPM)**. The default is 1337 RPM. Changes apply on the next burst.
 
@@ -15,8 +15,8 @@ Install the client DLL and Client/inspect-rotor.txt in BepInEx/plugins/Hawks-Arg
 
 ## Unity assets
 
-Editor contains the Unity asset build scripts and animation samples. Rebuilding the bundles requires the project-specific Unity 2022.3.43f1 WTT SDK assets, prepared prefabs, animation controllers, and PAYDAY 3 conversion inputs. These inputs and game libraries are external to this source repository. The scripts use paths relative to the Unity project root. Place the editor C# scripts in Assets/Editor; provide Editor/*.txt and the Client and bundles directories at the project root.
+Editor contains the Unity asset build scripts and animation samples. Rebuilding the bundles requires the project-specific Unity 2022.3.43f1 WTT SDK assets, prepared prefabs, animation controllers, and PAYDAY 3 conversion inputs. These inputs and game libraries are external to this source repository. The scripts use paths relative to the Unity project root. Place the editor C# scripts in Assets/Editor; provide Editor/*.txt, Editor/anim-audio.json and the Client and bundles directories at the project root.
 
 ## License
 
-The MIT license applies to original mod code. PAYDAY 3 and Escape from Tarkov models, animation data, audio, textures and other third-party assets remain the property of their respective owners.
+The MIT license applies to original mod code. PAYDAY 2, PAYDAY 3 and Escape from Tarkov models, animation data, audio, textures and other third-party assets remain the property of their respective owners.

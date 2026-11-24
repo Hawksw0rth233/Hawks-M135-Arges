@@ -11,7 +11,7 @@ public static class ArgesNativeEvents {
  const string Root="Assets/HawksArgesNative/";
  public static void Bind(AnimatorController controller,WeaponSoundPlayer player,Dictionary<string,AnimationClip> replacements){
   var actions=new Dictionary<string,string>{{"ppsh41_out_to_idle","Equip"},{"ppsh41_look","Inspect"}};
-  var cueTable=Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string,Cue[]>>(File.ReadAllText("E:/SPT Mod Workspace/PAYDAY3 Minigun/SPT-build/anim-audio.json"));
+  var cueTable=Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string,Cue[]>>(File.ReadAllText("Editor/anim-audio.json"));
   var states=AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(controller)).OfType<AnimatorState>().ToArray();
   var baseEvents=states.SelectMany(s=>s.behaviours).OfType<AnimationEventsStateBehaviour>().First(x=>x.EventsData).EventsData;
   var events=UnityEngine.Object.Instantiate(baseEvents);AssetDatabase.CreateAsset(events,Root+"Events.asset");

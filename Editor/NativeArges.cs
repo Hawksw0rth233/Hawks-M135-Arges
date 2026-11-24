@@ -108,7 +108,7 @@ public static class NativeArges {
  feedLocal=-bounds.center;feedRotation=Quaternion.identity;
  ArgesCarryEffects.BindBarrel(o);return Save(o,name);}
  static SoundBank Bank(SoundBank template,string name,string[] ids){
- var b=Object.Instantiate(template);var clips=ids.Select(id=>AssetDatabase.LoadAssetAtPath<AudioClip>(Source+"Audio/"+id+(id=="arges-shot-tail-short"?".wav":".wem.wav"))).ToArray();
+ var b=Object.Instantiate(template);var clips=ids.Select(id=>AssetDatabase.LoadAssetAtPath<AudioClip>(Source+"Audio/"+id+(id.StartsWith("pd2-vulcan-") || id=="arges-shot-tail-short"?".wav":".wem.wav"))).ToArray();
  if(clips.Any(x=>!x))throw new Exception("Missing audio "+name);
  foreach(var env in b.Environments)foreach(var range in env.Clips)range.Clips=clips;
  var so=new SerializedObject(b);so.FindProperty("_clipLiength").floatValue=clips[0].length;so.ApplyModifiedPropertiesWithoutUndo();AssetDatabase.CreateAsset(b,Folder+name+".asset");return b;}
@@ -121,11 +121,11 @@ public static class NativeArges {
  var extraction=o.GetComponent<ShellExtractionData>();var shot=extraction.ShotSettings;
  shot.ShellsForceXRange=Vector2.zero;shot.ShellsForceYRange=new Vector2(2,2);
  shot.ShellsForceZRange=Vector2.zero;shot.ShellForceMultiplier=0;extraction.ShotSettings=shot;
- var sp=o.GetComponent<WeaponSoundPlayer>();sp.Non_auto=true;sp.Body=Bank(sp.Body,"arges_shot",new[]{"1030816981","276528188","316098162","351295528","704695388"});sp.Tail=Bank(sp.Tail,"arges_tail",new[]{"arges-shot-tail-short"});sp.Doublet=sp.Body;
+ var sp=o.GetComponent<WeaponSoundPlayer>();sp.Non_auto=false;sp.Body=Bank(sp.Body,"arges_shot",new[]{"pd2-vulcan-auto-a","pd2-vulcan-auto-b"});sp.Tail=Bank(sp.Tail,"arges_tail",new[]{"pd2-vulcan-release-a","pd2-vulcan-release-b"});sp.Body.CustomLength=16f*2048f/44100f;EditorUtility.SetDirty(sp.Body);sp.Doublet=sp.Body;
  foreach(var m in sp.AdditionalSounds)Debug.Log("NATIVE ACTION "+m.EventName);
  Debug.Log("NATIVE CLIPS "+string.Join(",",wp._originalAnimatorController.animationClips.Select(c=>c.name).Distinct()));
  ArgesMotionBake.Run(wp);wp._fastAnimatorControllerBinaryData=AssetDatabase.LoadAssetAtPath<TextAsset>(Folder+"ArgesStates.bytes");var simple=new AnimatorOverrideController(wp._originalAnimatorController);AssetDatabase.CreateAsset(simple,Folder+"ArgesSimple.overrideController");wp._animatorSimple=simple;wp._animatorSpirit=simple;var clicks=new[]{"171486","374244581","397811854","482803504","610798379","964743721"};
- sp.AdditionalSounds.Add(new BaseSoundPlayer.SoundElement{EventName="ArgesSpinStart",SoundClips=clicks.Select(id=>AssetDatabase.LoadAssetAtPath<AudioClip>(Source+"Audio/"+id+(id=="arges-shot-tail-short"?".wav":".wem.wav"))).ToArray()});
+ sp.AdditionalSounds.Add(new BaseSoundPlayer.SoundElement{EventName="ArgesSpinStart",SoundClips=clicks.Select(id=>AssetDatabase.LoadAssetAtPath<AudioClip>(Source+"Audio/"+id+(id.StartsWith("pd2-vulcan-") || id=="arges-shot-tail-short"?".wav":".wem.wav"))).ToArray()});
  var weaponView=o.GetComponent<PreviewPivot>();var displayModel=Bone(wp._weaponObjectSimple,"M135");var visible=displayModel.GetComponentsInChildren<MeshRenderer>(true).Where(x=>x.enabled && x.name!="EquipTool").Select(x=>x.bounds).ToArray();var wb=visible[0];foreach(var v in visible)wb.Encapsulate(v);wb.Encapsulate(Bone(wp._weaponObjectSimple,"ArgesFireRotor").GetComponentInChildren<MeshRenderer>().bounds);
  weaponView.pivotPosition=wp._weaponObjectSimple.transform.InverseTransformPoint(wb.center);weaponView.scale=Vector3.one;weaponView.SpawnPosition=Vector3.zero;weaponView.Icon.rotation=Quaternion.Euler(6,-16,0)*Quaternion.Inverse(displayModel.rotation);weaponView.Icon.rotationEuler=weaponView.Icon.rotation.eulerAngles;weaponView.Icon.orthographic=true;weaponView.Icon.hasOffset=false;
  var prefab=Save(o,"weapon_m135_arges_container");var feed=new GameObject("mag_m135_arges");feed.AddComponent<MagazineInHandsVisualController>();

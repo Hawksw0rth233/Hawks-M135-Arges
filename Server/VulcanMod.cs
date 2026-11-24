@@ -9,7 +9,7 @@ namespace Hawks.Arges;
 
 [Injectable(TypePriority = OnLoadOrder.Preload + 1)]
 public sealed class ArgesMod(CustomItemService customItems, TemplateTable templates, GlobalTable globals,
-    BotTable bots) : IOnLoad
+    BotTable bots, TradersTable traders) : IOnLoad
 {
     public const string WeaponId = "686a13500000000000000001";
     public const string FeedId = "686a13500000000000000002";
@@ -22,6 +22,7 @@ public sealed class ArgesMod(CustomItemService customItems, TemplateTable templa
         Clone(DonorFeed, FeedId, "Arges ammunition belt", "Arges 弹链", "Arges 弾帯", 12000);
         Clone(Donor, WeaponId, "M135 Arges 7.62x51 minigun", "M135 Arges 7.62x51 转管机枪", "M135 Arges 7.62x51 ミニガン", 250000);
         var weapon = templates.Items[WeaponId].Properties!;
+        weapon.WeapClass = "specialWeapon";
         weapon.Prefab = new Prefab { Path = "hawks/weapon_m135_arges.bundle", Rcid = "" };
         templates.Items[FeedId].Properties!.Prefab = new Prefab { Path = "hawks/mag_m135_arges.bundle", Rcid = "" };
         var feedSlot = weapon.Slots!.Single(slot => slot.Name == "mod_magazine");
@@ -43,6 +44,17 @@ public sealed class ArgesMod(CustomItemService customItems, TemplateTable templa
         };
 
 
+        const string peacekeeper = "5935c25fb3acc3127c3d8cd9";
+        const string offer = "686a13500000000000000041";
+        var assort = traders.GetTrader(peacekeeper)!.Assort;
+        if (!assort.Items.Any(item => item.Id == offer))
+        {
+            assort.Items.Add(new Item { Id = offer, Template = WeaponId, ParentId = "hideout", SlotId = "hideout",
+                Upd = new() { UnlimitedCount = true, StackObjectsCount = 999999 } });
+            assort.Items.Add(FeedItem("686a13500000000000000042", offer));
+            assort.BarterScheme[offer] = [[new() { Template = "5696686a4bdc2da3298b456a", Count = 1800 }]];
+            assort.LoyalLevelItems[offer] = 4;
+        }
         foreach (var bot in bots.Types.Values)
         {
             if (bot?.BotInventory is not { Equipment: { } equipment } inventory)
@@ -75,7 +87,7 @@ public sealed class ArgesMod(CustomItemService customItems, TemplateTable templa
         var result = customItems.CreateItemFromClone(new()
         {
             ItemTplToClone = donorId, NewId = id, NewItemName = "hawks_arges_" + id[^2..],
-            ParentId = templates.Items[donorId].Parent, HandbookParentId = handbook.ParentId,
+            ParentId = templates.Items[donorId].Parent, HandbookParentId = id == WeaponId ? "5b5f79eb86f77447ed5636b7" : handbook.ParentId,
             HandbookPriceRoubles = price, FleaPriceRoubles = price, Locales = locales
         });
         if (!result.Success)
@@ -95,6 +107,7 @@ public sealed class ArgesInventoryDimensions(TemplateTable templates) : IOnLoad
     {
         var weapon = templates.Items[ArgesMod.WeaponId].Properties!;
         weapon.IsMountable = false;
+        weapon.AllowOverheat = false;
         weapon.Weight = 19.35;
         weapon.HipInnaccuracyGain = 0;
         weapon.Ergonomics = 0;

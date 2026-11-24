@@ -6,7 +6,7 @@ using HarmonyLib;
 using UnityEngine;
 
 namespace Hawks.Arges {
-[BepInPlugin("team.aminus.arges.client","M135 Arges spin-up","1.0.5")]
+[BepInPlugin("team.aminus.arges.client","M135 Arges spin-up","1.0.9")]
 public sealed partial class SpinUp : BaseUnityPlugin {
  const string WeaponId="686a13500000000000000001";
  // The source start clip lasts 29 frames at 30 fps.
@@ -35,6 +35,9 @@ public sealed partial class SpinUp : BaseUnityPlugin {
    restore.Hidden.Add(mesh);mesh.enabled=false;
   }
  }
+ static void ArgesIconHash(EFT.InventoryLogic.Item __0,ref int __result){
+  if(__0 is EFT.InventoryLogic.Weapon weapon && weapon.TemplateId==WeaponId)__result^=weapon.GetCurrentMagazine()==null?0x41B308:0x41B309;
+ }
  static void HideIconTool(GameObject model){HidePreviewTool(model);}
 
  static void FitArgesIcon(GameObject model, Camera camera,float cameraAspect){
@@ -56,6 +59,17 @@ public sealed partial class SpinUp : BaseUnityPlugin {
   var center=(lo+hi)*.5f;
   model.transform.position-=camera.transform.right*center.x+camera.transform.up*center.y;
   camera.orthographicSize=Mathf.Max((hi.y-lo.y)*.5f,(hi.x-lo.x)*.5f/Mathf.Max(.01f,cameraAspect))*1.08f;
+  if(nodes.Any(t=>t.name.StartsWith("mag_m135_arges",System.StringComparison.OrdinalIgnoreCase)) ||
+     meshes.Any(m=>m.name=="Feed box decals")){
+   float width=camera.orthographicSize*2f*cameraAspect;
+   model.transform.position-=camera.transform.right*(width*15f/314f);
+   return;
+  }
+  // Keep the mounted 5x3 icon's horizontal span when the same gun occupies 5x2.
+  const float mountedHalfWidth=.2849019f*(5f/3f);
+  camera.orthographicSize=mountedHalfWidth/cameraAspect;
+  // Visible silhouette center relative to the combined local bounding boxes.
+  model.transform.position-=camera.transform.up*.098f+camera.transform.right*.085f;
  }
  static bool PackRounds(EFT.InventoryLogic.StackSlot __instance,bool simulate,ref Diz.LanguageExtensions.OperationResult<EFT.InventoryLogic.ContainerAddResult> __result){
   if(!simulate || !MountedFeed(__instance.ParentItem))return true;
@@ -200,6 +214,7 @@ public sealed partial class SpinUp : BaseUnityPlugin {
  patch.Patch(AccessTools.Method(typeof(EFT.UI.ItemSpecificationPanel),"RecreateAttributeBars"),transpiler:new HarmonyMethod(typeof(SpinUp),nameof(FeedStats)));
  patch.Patch(AccessTools.Method(typeof(EFT.InventoryLogic.StackSlot),"Add",new[]{typeof(EFT.InventoryLogic.Item),typeof(bool)}),prefix:new HarmonyMethod(typeof(SpinUp),nameof(PackRounds)));
  patch.Patch(AccessTools.Method(typeof(ItemIconCreator),"PoseModelByPivot"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(HideIconTool)),postfix:new HarmonyMethod(typeof(SpinUp),nameof(FitArgesIcon)));
+ patch.Patch(AccessTools.Method(typeof(IconsHash),"GetItemHash",new[]{typeof(EFT.InventoryLogic.Item)}),postfix:new HarmonyMethod(typeof(SpinUp),nameof(ArgesIconHash)));
  RegisterFireRate();
  RegisterLaserCommands();
  patch.Patch(AccessTools.Method(typeof(ItemIconCreator),"GetItemIcon"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(IconRequest)));
@@ -207,6 +222,9 @@ public sealed partial class SpinUp : BaseUnityPlugin {
  patch.Patch(AccessTools.Method(typeof(RendererExtensions),"PlaceInClosestPosition"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(CameraFit)));
  patch.Patch(AccessTools.Method(typeof(Player.FirearmController),"SetTriggerPressed",new[]{typeof(bool)}),
  prefix:new HarmonyMethod(typeof(SpinUp),nameof(Filter)));
+ patch.Patch(AccessTools.Method(typeof(EFT.UI.ItemUiContext),"ReloadWeapon"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(AllowMenuReload)));
+ foreach(var action in new[]{"LoadWeapon","UnloadWeapon"})
+  patch.Patch(AccessTools.Method(typeof(EFT.UI.ItemUiContext),action),prefix:new HarmonyMethod(typeof(SpinUp),nameof(AllowMenuLoadUnload)));
  patch.Patch(AccessTools.Method(typeof(EFT.InventoryLogic.Slot),"Add",new[]{typeof(EFT.InventoryLogic.Item),typeof(bool),typeof(bool)}),prefix:new HarmonyMethod(typeof(SpinUp),nameof(InsertFeed)));
  patch.Patch(AccessTools.Method(typeof(EFT.InventoryLogic.Slot),"RemoveItem",new[]{typeof(bool)}),prefix:new HarmonyMethod(typeof(SpinUp),nameof(RemoveFeed)));
  patch.Patch(AccessTools.Method(typeof(EFT.InventoryLogic.ItemController),"LoadMagazine",new[]{typeof(EFT.InventoryLogic.Ammo),typeof(EFT.InventoryLogic.Magazine),typeof(int),typeof(bool)}),prefix:new HarmonyMethod(typeof(SpinUp),nameof(LoadFeed)));
@@ -215,6 +233,7 @@ public sealed partial class SpinUp : BaseUnityPlugin {
  patch.Patch(AccessTools.Method(typeof(Stamina),"Process"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(SlowRecovery)));
  patch.Patch(AccessTools.Method(typeof(Player.FirearmController),"Shot"),transpiler:new HarmonyMethod(typeof(SpinUp),nameof(RepeatableSpread)));
  patch.Patch(AccessTools.Method(typeof(Player),"GetCurveValue",new[]{typeof(int)}),postfix:new HarmonyMethod(typeof(SpinUp),nameof(ThirdPersonArms)));
+ patch.Patch(AccessTools.Method(typeof(EFT.UI.Matchmaker.MatchmakerTimeHasCome),"ShowPlayerModel"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(RememberLoadingPreview)));
  patch.Patch(AccessTools.Method(typeof(EFT.UI.PlayerModelLoader),"CreateWeapon"),prefix:new HarmonyMethod(typeof(SpinUp),nameof(InventoryPortraitStart)),postfix:new HarmonyMethod(typeof(SpinUp),nameof(InventoryPortraitReady)));
  foreach(var command in new[]{"CheckAmmo","CheckChamber","CanStartReload"})
   patch.Patch(AccessTools.Method(typeof(Player.FirearmController),command,System.Type.EmptyTypes),prefix:new HarmonyMethod(typeof(SpinUp),nameof(AllowCheck)));
@@ -234,6 +253,13 @@ public sealed partial class SpinUp : BaseUnityPlugin {
 
  static bool MountedWeapon(EFT.InventoryLogic.Item item){
   return item?.TemplateId==WeaponId && item.Parent?.Container is EFT.InventoryLogic.Slot slot && slot.ParentItem is EFT.InventoryLogic.InventoryEquipment;
+ }
+ static bool AllowMenuReload(EFT.InventoryLogic.Weapon __0) => !MountedWeapon(__0);
+
+ static bool AllowMenuLoadUnload(EFT.InventoryLogic.Weapon __0, ref System.Threading.Tasks.Task __result){
+  if (!MountedWeapon(__0)) return true;
+  __result = System.Threading.Tasks.Task.CompletedTask;
+  return false;
  }
  static bool MountedFeed(EFT.InventoryLogic.Item item){
   return item?.TemplateId=="686a13500000000000000002" && MountedWeapon(item.Parent?.Container?.ParentItem);
@@ -274,17 +300,22 @@ public sealed partial class SpinUp : BaseUnityPlugin {
  static Vector3 SpreadSample(Player.FirearmController controller){
   if(controller.Item?.TemplateId!=WeaponId)return UnityEngine.Random.insideUnitSphere;
   var burst=bursts.GetOrCreateValue(controller);
-  if(Time.time-burst.Last>.18f)burst.Index=0;
+  if(Time.time-burst.Last>Mathf.Max(.18f,90f/instance.configuredFireRate.Value))burst.Index=0;
   burst.Last=Time.time;
-  int n=burst.Index++%64;
+  int n=burst.Index++;
   return SpreadAt(controller,n);
  }
  static Vector3 SpreadAt(Player.FirearmController controller,int n){
-  float angle=n*2.39996323f;
-  float radius=Mathf.Sqrt(((n*37)%64+.5f)/64f);
+  var point=BurstPoint(n);
   var forward=controller.WeaponDirection.normalized;
   var right=Vector3.Cross(Vector3.up,forward).normalized;
-  return radius*(right*Mathf.Cos(angle)+Vector3.Cross(forward,right)*Mathf.Sin(angle));
+  return right*point.x+Vector3.Cross(forward,right)*point.y;
+ }
+ internal static Vector2 BurstPoint(int n){
+  const int riseShots=10;
+  if(n<=riseShots)return new Vector2(0f,Mathf.SmoothStep(0f,.32f,n/(float)riseShots));
+  float phase=((n-riseShots)%40)*(2f*Mathf.PI/40f);
+  return new Vector2(.18f*Mathf.Sin(phase),.32f+.025f*(1f-Mathf.Cos(phase)));
  }
  static IEnumerable<CodeInstruction> RepeatableSpread(IEnumerable<CodeInstruction> instructions){
   var getter=AccessTools.PropertyGetter(typeof(UnityEngine.Random),"insideUnitSphere");
@@ -302,7 +333,18 @@ public sealed partial class SpinUp : BaseUnityPlugin {
  }
 
 
- static void InventoryPortraitStart(EFT.InventoryLogic.Item weapon,ref bool animateWeapon,out bool __state){
+ static EFT.UI.PlayerModelView loadingPreview;
+ static void RememberLoadingPreview(EFT.UI.PlayerModelView ____playerModelView){
+  loadingPreview = ____playerModelView;
+ }
+
+ static void InventoryPortraitStart(EFT.UI.PlayerModelLoader __instance,EFT.InventoryLogic.Item weapon,ref bool animateWeapon,out bool __state){
+  if(weapon?.TemplateId==WeaponId && ReferenceEquals(__instance.ModelPlayerPoser,loadingPreview?.ModelPlayerPoser)){
+   // ChangeWeapon starts in PATROL (Arges horizontal hold). Disable the menu's random action picker.
+   animateWeapon=false;
+   __state=false;
+   return;
+  }
   __state=weapon?.TemplateId==WeaponId && Comfort.Common.Singleton<GameWorld>.Instantiated && Comfort.Common.Singleton<GameWorld>.Instance.MainPlayer?.IsInventoryOpened==true;
   if(__state)animateWeapon=false;
  }
